@@ -75,10 +75,26 @@ function Dashboard() {
       setProgress(0);
       setUploadError(null);
       try {
-        const res = await uploadVideo(file, setProgress);
-        // Prefer backend URL if given; otherwise play the local file directly.
-        setVideoUrl(res.url || URL.createObjectURL(file));
-        toast.push("success", "Video uploaded — analysis started.");
+        if (USE_MOCK) {
+          // No backend in mock mode — simulate an upload and play the file locally
+          // so the drag-and-drop flow and video panel can be exercised end to end.
+          await new Promise<void>((resolve) => {
+            let pct = 0;
+            const step = () => {
+              pct = Math.min(100, pct + Math.floor(Math.random() * 18) + 6);
+              setProgress(pct);
+              if (pct < 100) window.setTimeout(step, 220);
+              else resolve();
+            };
+            step();
+          });
+          setVideoUrl(URL.createObjectURL(file));
+          toast.push("success", "Video loaded locally (mock mode) — analysis is simulated.");
+        } else {
+          const res = await uploadVideo(file, setProgress);
+          setVideoUrl(res.url || URL.createObjectURL(file));
+          toast.push("success", "Video uploaded — analysis started.");
+        }
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Upload failed";
         setUploadError(msg);
