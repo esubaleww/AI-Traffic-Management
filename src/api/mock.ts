@@ -135,8 +135,6 @@ function tick(): TrafficState {
 export function createMockTrafficStream(
   onState: (s: TrafficState) => void,
 ): () => void {
-  // Emit immediately so the UI isn't blank, then every second.
-  const timer: number | undefined = window.setInterval(emit, 1000);
   let stopped = false;
 
   const emit = () => {
@@ -146,6 +144,7 @@ export function createMockTrafficStream(
 
   // Emit immediately so the UI isn't blank, then every second.
   emit();
+  const timer = window.setInterval(emit, 1000);
 
   return () => {
     stopped = true;
