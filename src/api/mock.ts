@@ -3,7 +3,12 @@
 //   green -> yellow -> all-red -> pedestrian walk -> (back to green)
 // Used when VITE_USE_MOCK is true, or as a fallback when the WS is offline.
 
-import type { TrafficAlert, TrafficState, VehicleLight, PedestrianSignal } from "@/types/traffic";
+import type {
+  TrafficAlert,
+  TrafficState,
+  VehicleLight,
+  PedestrianSignal,
+} from "@/types/traffic";
 
 const MAX_HISTORY_ALERTS = 12;
 let alertSeq = 0;
@@ -39,9 +44,21 @@ function pick<T>(arr: T[]): T {
 }
 
 const CONGESTION_MESSAGES: Record<TrafficState["congestion"], string[]> = {
-  low: ["Flow nominal on University Blvd", "Clear corridor near Lake Front", "Light volume downtown"],
-  medium: ["Building queue at main junction", "Medium density on Bridge Rd", "Moderate delay near market"],
-  high: ["Congestion spike at roundabout", "Heavy gridlock on Station St", "Back-up detected at ferry crossing"],
+  low: [
+    "Flow nominal on University Blvd",
+    "Clear corridor near Lake Front",
+    "Light volume downtown",
+  ],
+  medium: [
+    "Building queue at main junction",
+    "Medium density on Bridge Rd",
+    "Moderate delay near market",
+  ],
+  high: [
+    "Congestion spike at roundabout",
+    "Heavy gridlock on Station St",
+    "Back-up detected at ferry crossing",
+  ],
 };
 
 function nextTick(now: number): { phase: Phase; advanced: boolean } {
@@ -58,13 +75,26 @@ function tick(): TrafficState {
   const now = Date.now();
   const { phase, advanced } = nextTick(now);
 
-  // Vehicles accrue during green, trickle during yellow, none during red.
-  if (phase.light === "green") mock.vehicleCount += Math.floor(Math.random() * 3) + 1;
-  else if (phase.light === "yellow") mock.vehicleCount += Math.random() < 0.3 ? 1 : 0;
+  // Vehicles accrue during green, trickle during yellow, and clear while stopped.
+  if (phase.light === "green") {
+    mock.vehicleCount += Math.floor(Math.random() * 3) + 1;
+  } else if (phase.light === "yellow") {
+    mock.vehicleCount += Math.random() < 0.3 ? 1 : 0;
+  } else {
+    mock.vehicleCount = Math.max(
+      0,
+      mock.vehicleCount - (Math.floor(Math.random() * 3) + 1),
+    );
+  }
 
   // Pedestrians accrue while waiting, clear during walk.
-  if (phase.signal === "wait") mock.pedestrianCount += Math.random() < 0.4 ? 1 : 0;
-  else mock.pedestrianCount = Math.max(0, mock.pedestrianCount - (Math.floor(Math.random() * 2) + 1));
+  if (phase.signal === "wait")
+    mock.pedestrianCount += Math.random() < 0.4 ? 1 : 0;
+  else
+    mock.pedestrianCount = Math.max(
+      0,
+      mock.pedestrianCount - (Math.floor(Math.random() * 2) + 1),
+    );
 
   // Congestion follows vehicle density with a little noise.
   const density = mock.vehicleCount;
@@ -79,7 +109,9 @@ function tick(): TrafficState {
     );
   }
   if (advanced && phase.signal === "walk" && Math.random() < 0.35) {
-    mock.pendingAlerts.unshift(makeAlert("pedestrian", "Pedestrian phase active — vehicles held", now));
+    mock.pendingAlerts.unshift(
+      makeAlert("pedestrian", "Pedestrian phase active — vehicles held", now),
+    );
   }
 
   // Recommended green drifts with congestion.
@@ -100,9 +132,9 @@ function tick(): TrafficState {
   };
 }
 
-export function createMockTrafficStream(onState: (s: TrafficState) => void): () => void {
-  // Emit immediately so the UI isn't blank, then every second.
-  const timer: number | undefined = window.setInterval(emit, 1000);
+export function createMockTrafficStream(
+  onState: (s: TrafficState) => void,
+): () => void {
   let stopped = false;
 
   const emit = () => {
@@ -110,11 +142,13 @@ export function createMockTrafficStream(onState: (s: TrafficState) => void): () 
     onState(tick());
   };
 
+  // Emit immediately so the UI isn't blank, then every second.
   emit();
+  const timer = window.setInterval(emit, 1000);
 
   return () => {
     stopped = true;
-    if (timer) window.clearInterval(timer);
+    window.clearInterval(timer);
   };
 }
 
