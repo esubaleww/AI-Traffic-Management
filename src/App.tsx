@@ -20,6 +20,7 @@ import { AlertList } from "@/components/AlertList";
 import { TrendChart } from "@/components/TrendChart";
 import { SpeedAlertsTable } from "@/components/SpeedAlertsTable";
 import { ReportCard } from "@/components/ReportCard";
+import { ViolationsPanel } from "@/components/ViolationsPanel";
 import { Card } from "@/components/Card";
 import { Skeleton } from "@/components/Skeleton";
 import { ErrorBanner } from "@/components/ErrorBanner";
@@ -28,6 +29,7 @@ import { statusToPill } from "@/components/StatusPill";
 
 import { useTrafficStream } from "@/hooks/useTrafficStream";
 import { useGreenCountdown } from "@/hooks/useGreenCountdown";
+import { useViolations } from "@/hooks/useViolations";
 import { uploadVideo } from "@/api/client";
 import type { SpeedAlert } from "@/types/traffic";
 
@@ -48,6 +50,7 @@ function Dashboard() {
   const { state, history, status } = useTrafficStream();
   const toast = useToast();
   const countdown = useGreenCountdown(state);
+  const violations = useViolations(state);
 
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -209,6 +212,16 @@ function Dashboard() {
               <Card title="Alerts & Event Log" icon={<ListChecks className="h-4 w-4 text-sky-400" />}>
                 {state ? <AlertList alerts={state.alerts} /> : <Skeleton className="h-72 w-full" />}
               </Card>
+            </div>
+
+            {/* Row 3b: red-light violations panel */}
+            <div className="mt-5">
+              <ViolationsPanel
+                violations={violations.violations}
+                loading={violations.loading}
+                error={violations.error}
+                onMarkReviewed={violations.markReviewed}
+              />
             </div>
 
             {/* Row 4: optional feature-flag cards */}
